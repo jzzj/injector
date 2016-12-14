@@ -4,7 +4,8 @@
   "description": "Simple injector for DI (dependency inject)",
   "main": "index.js",
   "scripts": {
-    "test": "node_modules/.bin/mocha --harmony"
+    "test": "node_modules/.bin/mocha --harmony",
+    "prepublish": "npm test"
   },
   "repository": {
     "type": "git",

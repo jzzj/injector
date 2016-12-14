@@ -49,8 +49,7 @@ export default class Injector {
 		
 		return Promise.all(actualParams)
 			.then(args=>{
-				args.unshift(ctx);
-				return (isGenerator(func) || !func.prototype) ? func.apply(ctx, args) : new (fnBind.apply(func, args));
+				return (ctx || isGenerator(func) || !func.prototype) ? func.apply(ctx, args) : new (fnBind.apply(func, [ctx].concat(args)));
 			}, console.error);
 	}
 
