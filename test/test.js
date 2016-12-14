@@ -30,4 +30,19 @@ describe('should inject works', function() {
             done();
         });
     });
+
+    it('multiple dependencies found', function(done){
+    	injector.service('a', 'b');
+    	injector.service('C', function C(){
+    		this.name = "C";
+    	});
+    	injector.service('Person', function Person(C){
+    		this.a = 123;
+    	});
+    	injector.invoke(function(Person, a, C){
+    		assert.equal(Person.a, '123');
+    		assert.equal(C.name, 'C');
+    		done();
+    	})
+    });
 });

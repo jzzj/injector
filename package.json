@@ -1,6 +1,6 @@
 {
-  "name": "injector",
-  "version": "1.0.0",
+  "name": "easy-injector",
+  "version": "1.0.1",
   "description": "Simple injector for DI (dependency inject)",
   "main": "index.js",
   "scripts": {

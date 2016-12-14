@@ -1,41 +1,63 @@
-import getParamNames from './util';
+import util from './util';
+
+const {getParamNames, cachify, isGenerator} = util;
+
+const fnBind = Function.prototype.bind;
 
 export default class Injector {
 	constructor(){
 		this.modules = [];
-		this._cache = [];
 	}
 
 	service(name, value){
-		this.modules[name] = value;
+		const isFunction = typeof value === 'function';
+		this.modules[name] = isFunction ? {
+			value: cachify((ctx)=>{
+				this._loading = this._loading || {};
+				if (this._loading[name]) throw new Error('circular dependencies found for ' + name);
+				this._loading[name] = true;
+				let ret;
+				try{
+					ret = this.invoke(value, ctx);
+				}catch(e){
+					return Promise.reject(e);
+				}
+				this._loading[name] = false;
+				return ret;
+			})
+		} : {
+			value: ()=>value
+		};
 	}
 
-	invoke(dependencies, func){
+	invoke(dependencies, func, ctx){
 		if(typeof dependencies === 'function'){
+			ctx = func;
 			func = dependencies;
 			dependencies = [];
 		}
-		const fnStr = func.toString();
+		
 		let actualParams;
-		if(this._cache[fnStr]){
-			actualParams = this._cache[fnStr];
-		}else{
-			const params = getParamNames(func);
-			try{
-				actualParams = params.map((param, idx)=>this.get(dependencies[idx] || param));
-			}catch(e){
-				return Promise.reject(e);
-			}
-			//there is no limit for the string length (as long as it fits into memory)
-			this._cache[fnStr] = actualParams;
+		
+		const params = getParamNames(func);
+		
+		try{
+			actualParams = params.map((param, idx)=>this.get(dependencies[idx] || param, ctx));
+		}catch(e){
+			return Promise.reject(e);
 		}
-		return Promise.all(actualParams).then(args=>Promise.resolve(func.apply(null, args)));
+		
+		return Promise.all(actualParams)
+			.then(args=>{
+				args.unshift(ctx);
+				return (isGenerator(func) || !func.prototype) ? func.apply(ctx, args) : new (fnBind.apply(func, args));
+			}, console.error);
 	}
 
-	get(name) {
+	get(name, ctx) {
         const module = this.modules[name];
         if (!module) throw new Error(name + ' is not found!');
-        return Promise.resolve(module);
+        return Promise.resolve(module.value(ctx));
     }
 
 }
